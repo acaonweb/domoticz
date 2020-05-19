@@ -1,0 +1,53 @@
+local scriptVar = 'wattNotification'
+
+return
+{
+    on =
+    {
+        devices =
+        {
+            'wattDevice', -- change to name of device to monitor
+        },
+        customEvents =
+        {
+            scriptVar,
+        },
+    },
+
+    data =
+    {
+        watt =
+        {
+                history = true,
+                maxMinutes = 5,
+        },
+        notificationsSend =
+        {
+                history = true,
+                maxHours = 4,         -- Only 1 notification every 4 hours change to how many you want
+        },
+    },
+
+    logging =
+    {
+        level = domoticz.LOG_DEBUG, -- change to doomticz.LOG_ERROR when script works without issues
+    },
+
+    execute = function(dz, item)
+        local maxWatt = 4000
+        local highMinutes = 3
+
+        if item.isDevice then
+            dz.data.watt.add(item.actualWatt)
+            -- item.dump() only for debugging
+            if item.actualWatt > maxWatt then
+                dz.emitEvent(scriptVar).afterMin(highMinutes)
+            end
+        else
+            if ( dz.data.watt.minSince('00:03:00') > maxWatt ) and ( dz.data.notificationsSend.sum() < 1 ) then
+                dz.notify('maxWatt','usage over ' .. maxWatt .. ' watt, for over ' .. highMinutes ..' minutes')
+                dz.data.notificationsSend.add(1)
+            end
+        end
+    end
+}
